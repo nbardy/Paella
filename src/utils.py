@@ -40,7 +40,8 @@ class ImageCaptionDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        image = Image.open(image_path).convert("RGB")
+        with os.fdopen(os.open(image_path, os.O_RDONLY), "rb") as f:
+            image = Image.open(f).convert("RGB")
         image = self.transform(image)
         caption = os.path.splitext(os.path.basename(image_path))[0]
         return image, caption
