@@ -16,12 +16,6 @@ transforms = torchvision.transforms.Compose([
 ])
 
 
-class YOUR_DATASET(Dataset):
-    def __init__(self, dataset_path):
-        pass
-    import os
-
-
 class ImageCaptionDataset(Dataset):
     def __init__(self, dataset_path):
         self.dataset_path = dataset_path
