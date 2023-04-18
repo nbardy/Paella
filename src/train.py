@@ -14,12 +14,11 @@ checkpoint_frequency = 2000
 lr = 1e-4
 
 train_device = "cuda"
-dataset_path = ""
+dataset_path = "/home/paperspace/datasets/super_images_big_labeled"
 byt5_model_name = "google/byt5-xl"
-vqmodel_path = ""
-run_name = "Paella-ByT5-XL-v1"
+vqmodel_path = "models/vqgan_f4.pt"
 output_path = "output"
-checkpoint_path = f"{run_name}.pt"
+checkpoint_path = "models/paella_v3.pt"
 
 
 def train():
@@ -27,12 +26,15 @@ def train():
     device = torch.device(train_device)
 
     dataloader = get_dataloader(dataset_path, batch_size=batch_size)
-    checkpoint = torch.load(checkpoint_path, map_location=device) if os.path.exists(checkpoint_path) else None
+    checkpoint = torch.load(checkpoint_path, map_location=device) if os.path.exists(
+        checkpoint_path) else None
 
     model = Paella(byt5_embd=2560).to(device)
-    vqgan, (byt5_tokenizer, byt5) = load_conditional_models(byt5_model_name, vqmodel_path, device)
+    vqgan, (byt5_tokenizer, byt5) = load_conditional_models(
+        byt5_model_name, vqmodel_path, device)
     optimizer = optim.AdamW(model.parameters(), lr=lr)
-    scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_updates)
+    scheduler = GradualWarmupScheduler(
+        optimizer, multiplier=1, total_epoch=warmup_updates)
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1, reduction='none')
 
     start_iter = 1
@@ -53,7 +55,8 @@ def train():
                 byt5_captions = [''] * len(captions)
             else:
                 byt5_captions = captions
-            byt5_tokens = byt5_tokenizer(byt5_captions, padding="longest", return_tensors="pt", max_length=768, truncation=True).input_ids.to(device)
+            byt5_tokens = byt5_tokenizer(
+                byt5_captions, padding="longest", return_tensors="pt", max_length=768, truncation=True).input_ids.to(device)
             byt_embeddings = byt5(input_ids=byt5_tokens).last_hidden_state
 
             t = (1-torch.rand(images.size(0), device=device))
@@ -70,10 +73,12 @@ def train():
 
         acc = (pred.argmax(1) == latents).float().mean()
 
-        pbar.set_postfix({'bs': images.size(0), 'loss': loss.item(), 'acc': acc.item(), 'grad_norm': grad_norm.item(), 'lr': optimizer.param_groups[0]['lr'], 'total_steps': scheduler.last_epoch})
+        pbar.set_postfix({'bs': images.size(0), 'loss': loss.item(), 'acc': acc.item(), 'grad_norm': grad_norm.item(
+        ), 'lr': optimizer.param_groups[0]['lr'], 'total_steps': scheduler.last_epoch})
 
         if i % checkpoint_frequency == 0:
-            torch.save({'state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(), 'scheduler_last_step': scheduler.last_epoch, 'iter' : i}, checkpoint_path)
+            torch.save({'state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(
+            ), 'scheduler_last_step': scheduler.last_epoch, 'iter': i}, checkpoint_path)
 
 
 if __name__ == '__main__':
